@@ -4,7 +4,7 @@ Watches with functions:
 - Stopwatch;
 - Timer;
 - Alarm;
-- Language change (English, Russian, Ukrainian).
+- Language change (English, Ukrainian, Russian).
 
 #### <a href="https://wokwi.com/projects/369043834902791169">Emulation of the project</a>
 
