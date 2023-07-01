@@ -5,6 +5,7 @@ Watches with functions:
 - Timer;
 - Alarm;
 - Language change (English, Russian, Ukrainian).
+<img src="https://github.com/boy4ik7/Wrist-watch/blob/main/Wrist%20watch_image.png?raw=true" width="300">
 #### <a href="https://wokwi.com/projects/369043834902791169">Emulation of the project</a>
 ## Libraries used
 <a href="https://github.com/GyverLibs/GyverOLED">GyverOLED, </a>
