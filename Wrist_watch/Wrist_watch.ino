@@ -28,6 +28,7 @@ TimerMs tmr_alarm(1000, 1, 1);
 #define chargerPin 4 // пин подключения з\у
 #define chargerPin_done 5 // пин окончания заряда
 #define vibrationPin 6 // пин вибромотора
+#define batteryPin A1 // пин вибромотора
 #define INIT_ADDR 1023  // номер резервной ячейки
 #define INIT_KEY 50     // ключ первого запуска. 0-254, на выбор
 
@@ -105,8 +106,7 @@ void setup() {
     pinMode(chargerPin, INPUT);
     pinMode(chargerPin_done, INPUT);
     pinMode(vibrationPin, OUTPUT);
-    //battery_Pin
-    pinMode(A1, INPUT);
+    pinMode(batteryPin, INPUT);
     tmr_charging.setPeriodMode();
     tmr_screen.setTimerMode();
     tmr_menu.setTimerMode();
@@ -1772,7 +1772,7 @@ void menu() {
                                                 }
                                                 if (btn_down.held()) {
                                                     battery_setting = false;
-                                                    EEPROM.get(1, battery_setting);
+                                                    EEPROM.put(1, battery_setting);
                                                     tmr_menu.start();
                                                 }
                                                 /*
@@ -1799,7 +1799,7 @@ void menu() {
                                                 }
                                                 if (btn_down.held()) {
                                                     battery_setting = true;
-                                                    EEPROM.get(1, battery_setting);
+                                                    EEPROM.put(1, battery_setting);
                                                     tmr_menu.start();
                                                 }
                                                 /*
@@ -1929,11 +1929,11 @@ void alarm_check() {
                 break;
             }
             if (tmr_alarm.tick()) {
-                oled.drawBitmap(1, 1, alarm_7x8, 7, 8, BITMAP_NORMAL, BUF_ADD);  
+                oled.drawBitmap(120, 1, alarm_7x8, 7, 8, BITMAP_NORMAL, BUF_ADD);
                 digitalWrite(vibrationPin, HIGH);
                 alarm_done -= 1;
             } else {
-                oled.clear(1 ,1, 7, 8);
+                oled.clear(120 ,1, 127, 8);
                 digitalWrite(vibrationPin, LOW);
             }
             oled.setScale(3);
@@ -1957,7 +1957,7 @@ void alarm_check() {
             // Дублируем костыль
             uint8_t dayOfWeek = clock.dayOfWeek - 1;
             if (dayOfWeek == 0) dayOfWeek = 7;
-            switch (clock.dayOfWeek) { // День недели
+            switch (dayOfWeek) { // День недели
                 case MON:
                     if (language == 1) {
                         oled.print("MON");
@@ -2075,7 +2075,7 @@ void alarm_check() {
 
 void battery_check() {
     if (tmr_alarm.tick()) {
-        battery = analogRead(A1);
+        battery = analogRead(batteryPin);
         //510 = 2.5v, 593 = 2.9v, 614 = 3.0v, 859 = 4.2v Arduino, подтяжка 10 кОм к земле
         battery = map(battery, 593, 859, 0, 100);
         //battery = map(battery, 0, 1023, 0, 100);
