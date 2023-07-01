@@ -29,8 +29,8 @@ TimerMs tmr_alarm(1000, 1, 1);
 #define chargerPin_done 5 // пин окончания заряда
 #define vibrationPin 6 // пин вибромотора
 #define batteryPin A1 // пин измерения заряда аккумулятора
-#define INIT_ADDR 1023  // номер резервной ячейки
-#define INIT_KEY 50     // ключ первого запуска. 0-254, на выбор
+#define INIT_ADDR 1023 // номер резервной ячейки
+#define INIT_KEY 50 // ключ первого запуска. 0-254, на выбор
 
 uint8_t charging_animation = 0, alarm_hour = 24, alarm_minute = 60, language = 1;
 int battery;
