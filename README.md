@@ -1,3 +1,3 @@
-# Wrist watch on STM32 #
+# Wrist watch on Arduino Nano #
 ## With many features
-#### Emulation of the project on the Arduino Mega board: <a href="https://wokwi.com/projects/368778895021257729">wokwi.com</a>
+#### Emulation of the project: <a href="https://wokwi.com/projects/369043834902791169">wokwi.com</a>
