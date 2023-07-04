@@ -830,7 +830,7 @@ void menu() {
                     oled.setCursor(16, 2);
                     int alarm_hour_, alarm_minute_;
                     bool choice = true;
-                    if ((alarm_hour == 24) && (alarm_minute == 60)) {
+                    if ((alarm_hour > 23) || (alarm_minute == 59)) {
                         clock.getTime();
                         alarm_hour_ = clock.hour;
                         alarm_minute_ = clock.minute;
@@ -1917,6 +1917,7 @@ void alarm_check() {
     if ((clock.hour == alarm_hour) && (clock.minute == alarm_minute)) {
         oled.setPower(true);
         int alarm_done = 30;
+        bool vibro = true;
         while (true) {
             btn_up.tick();
             btn_down.tick();
@@ -1929,12 +1930,16 @@ void alarm_check() {
                 break;
             }
             if (tmr_alarm.tick()) {
-                oled.drawBitmap(120, 1, alarm_7x8, 7, 8, BITMAP_NORMAL, BUF_ADD);
-                digitalWrite(vibrationPin, HIGH);
-                alarm_done -= 1;
-            } else {
-                oled.clear(120 ,1, 127, 8);
-                digitalWrite(vibrationPin, LOW);
+                if (vibro == true) {
+                    oled.drawBitmap(120, 1, alarm_7x8, 7, 8, BITMAP_NORMAL, BUF_ADD);
+                    digitalWrite(vibrationPin, HIGH);
+                    alarm_done -= 1;
+                    vibro = false;
+                } else {
+                    oled.clear(120 ,1, 127, 8);
+                    digitalWrite(vibrationPin, LOW);
+                    vibro = true;
+                }
             }
             oled.setScale(3);
             oled.setCursor(16, 2);
