@@ -830,7 +830,7 @@ void menu() {
                     oled.setCursor(16, 2);
                     int alarm_hour_, alarm_minute_;
                     bool choice = true;
-                    if ((alarm_hour > 23) || (alarm_minute == 59)) {
+                    if ((alarm_hour > 23) || (alarm_minute > 59)) {
                         clock.getTime();
                         alarm_hour_ = clock.hour;
                         alarm_minute_ = clock.minute;
