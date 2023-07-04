@@ -278,7 +278,7 @@ void main_screen() {
     //Serial.println(charging);
     //Serial.print("Зарядка закончилась - ");
     //Serial.println(charging_done);
-    if ((charging == true) && (charging_done == false)) { // Идет зарядка
+    if (charging == true) { // Идет зарядка
         if ((tmr_charging.tick())) {
             switch (charging_animation) {
                 case 0:
@@ -306,7 +306,7 @@ void main_screen() {
               
         }
     } 
-    if ((charging == true) && (charging_done == true)) { // Зарядка закончилась
+    if (charging_done == true) { // Зарядка закончилась
         oled.drawBitmap(1, 1, bat_done_7x12, 7, 12, BITMAP_NORMAL, BUF_ADD);
     } 
     if ((charging == false) && (charging_done == false)) { // Не заряжается
@@ -2021,7 +2021,7 @@ void alarm_check() {
             //Serial.println(charging);
             //Serial.print("Зарядка закончилась - ");
             //Serial.println(charging_done);
-            if ((charging == true) && (charging_done == false)) { // Идет зарядка
+            if (charging == true) { // Идет зарядка
                 if ((tmr_charging.tick())) {
                     switch (charging_animation) {
                         case 0:
@@ -2049,7 +2049,7 @@ void alarm_check() {
                     
                 }
             } 
-            if ((charging == true) && (charging_done == true)) { // Зарядка закончилась
+            if (charging_done == true) { // Зарядка закончилась
                 oled.drawBitmap(1, 1, bat_done_7x12, 7, 12, BITMAP_NORMAL, BUF_ADD);
             } 
             if ((charging == false) && (charging_done == false)) { // Не заряжается
