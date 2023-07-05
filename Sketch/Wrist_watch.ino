@@ -82,23 +82,6 @@ const uint8_t qr_code_33x33[] PROGMEM = {
 void setup() {
     //Serial.begin(9600);
     clock.begin();
-    // установка времени и даты компиляции с помощью библиотеки buildTime
-    clock.fillByYMD(BUILD_YEAR, BUILD_MONTH, BUILD_DAY);
-    clock.fillByHMS(BUILD_HOUR, BUILD_MIN, BUILD_SEC);
-    // установка времени и даты вручную, удалите " /* */"
-    /*
-    clock.fillByYMD(2023, 7, 1); // год, месяц, дата
-    clock.fillByHMS(15, 28, 30); // часы, минуты, секунды
-    */
-    //clock.fillDayOfWeek(6); // день недели
-    // 1 - MON - Понедельник
-    // 2 - TUE - Вторник
-    // 3 - WED - Среда
-    // 4 - THU - Четверг
-    // 5 - FRI - Пяница
-    // 6 - SAT - Суббота
-    // 7 - SUN - Воскресенье
-    clock.setTime(); // запись времени
     oled.init(); // инициализация дисплея
     pinMode(chargerPin, INPUT);
     pinMode(chargerPin_done, INPUT);
@@ -116,6 +99,23 @@ void setup() {
         EEPROM.put(3, alarm_status);
         EEPROM.put(4, alarm_hour);
         EEPROM.put(5, alarm_minute);
+        // установка времени и даты компиляции с помощью библиотеки buildTime
+        clock.fillByYMD(BUILD_YEAR, BUILD_MONTH, BUILD_DAY);
+        clock.fillByHMS(BUILD_HOUR, BUILD_MIN, BUILD_SEC);
+        // установка времени и даты вручную, удалите " /* */"
+        /*
+        clock.fillByYMD(2023, 7, 1); // год, месяц, дата
+        clock.fillByHMS(15, 28, 30); // часы, минуты, секунды
+        */
+        //clock.fillDayOfWeek(6); // день недели
+        // 1 - MON - Понедельник
+        // 2 - TUE - Вторник
+        // 3 - WED - Среда
+        // 4 - THU - Четверг
+        // 5 - FRI - Пяница
+        // 6 - SAT - Суббота
+        // 7 - SUN - Воскресенье
+        clock.setTime(); // запись времени
     }
     EEPROM.get(0, language); // прочитали
     EEPROM.get(1, battery_setting);
