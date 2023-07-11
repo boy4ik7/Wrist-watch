@@ -11,25 +11,27 @@
 #include <TimerMs.h>
 #include "buildTime.h"
 #include <EEPROM.h>
+#include <GyverPower.h>
 GyverOLED<SSD1306_128x64, OLED_NO_BUFFER> oled;
 //GyverOLED<SSD1306_128x64, OLED_BUFFER> oled;
 DS1307 clock;
 // подключаем кнопки на пины D2 и D3
 EncButton2<EB_BTN> btn_up(INPUT, 2);
 EncButton2<EB_BTN> btn_down(INPUT, 3);
-TimerMs tmr_charging(300, 1, 1);
 TimerMs tmr_screen(5000, 1, 1);
 TimerMs tmr_menu(10000, 0, 1);
-TimerMs tmr_stopwatch(120000, 0, 1);
 TimerMs tmr_alarm(1000, 1, 1);
-#define chargerPin 4 // пин подключения з\у
+
+#define chargerPin 4 // пин зарядки
 #define chargerPin_done 5 // пин окончания заряда
 #define vibrationPin 6 // пин вибромотора
-#define batteryPin A1 // пин измерения заряда аккумулятора
 #define INIT_ADDR 1023 // номер резервной ячейки
 #define INIT_KEY 50 // ключ первого запуска. 0-254, на выбор
+#define battery_min 2700 // минимальный уровень заряда батареи
+#define battery_max 4200 // максимальный уровень заряда батареи
+#define delta 1.366 //
 
-uint8_t charging_animation = 0, alarm_hour = 24, alarm_minute = 60, language = 1;
+uint8_t charging_animation = 0, alarm_hour = 24, alarm_minute = 60, language = 3; // language = 1 - английский, 2 - украинский, 3 - русский.
 int battery;
 bool charging, charging_done, battery_setting = false, screen_status = true, alarm_status = false;
 
@@ -86,11 +88,14 @@ void setup() {
     pinMode(chargerPin, INPUT);
     pinMode(chargerPin_done, INPUT);
     pinMode(vibrationPin, OUTPUT);
-    pinMode(batteryPin, INPUT);
-    tmr_charging.setPeriodMode();
+    //pinMode(batteryPin, INPUT);
+    // подключаем прерывание на пин D2-D3
+    attachInterrupt(0, isr, FALLING);
+    attachInterrupt(1, isr, FALLING);
+    // глубокий сон
+    power.setSleepMode(POWERDOWN_SLEEP);
     tmr_screen.setTimerMode();
     tmr_menu.setTimerMode();
-    tmr_stopwatch.setTimerMode();
     tmr_alarm.setPeriodMode();
     if (EEPROM.read(INIT_ADDR) != INIT_KEY) { // первый запуск
         EEPROM.write(INIT_ADDR, INIT_KEY); // записали ключ
@@ -102,7 +107,7 @@ void setup() {
         // установка времени и даты компиляции с помощью библиотеки buildTime
         clock.fillByYMD(BUILD_YEAR, BUILD_MONTH, BUILD_DAY);
         clock.fillByHMS(BUILD_HOUR, BUILD_MIN, BUILD_SEC);
-        // установка времени и даты вручную, удалите " /* */"
+        // установка времени и даты вручную, удалите "/* */"
         /*
         clock.fillByYMD(2023, 7, 1); // год, месяц, дата
         clock.fillByHMS(15, 28, 30); // часы, минуты, секунды
@@ -124,12 +129,25 @@ void setup() {
     EEPROM.get(5, alarm_minute);
 }
 
+void isr() {
+}
+
 void loop() {
     if ((tmr_screen.tick()) && (screen_status == true) ) {
         screen_status = false;
         oled.clear();
         oled.update();
         oled.setPower(screen_status);
+        delay(100);
+        attachInterrupt(0, isr, FALLING);
+        attachInterrupt(1, isr, FALLING);
+        power.sleep(SLEEP_8192MS);
+        //SLEEP_512MS
+        //SLEEP_1024MS
+        //SLEEP_2048MS
+        //SLEEP_4096MS
+        detachInterrupt(0);
+        detachInterrupt(1);
     }
     btn_up.tick();
     btn_down.tick();
@@ -143,13 +161,14 @@ void loop() {
         battery_check();
         main_screen();
     }
-    // удержание верхней кнопки включает будильник
+    // удержание верхней кнопки включает/выключает будильник
     if ((btn_up.held()) && (screen_status == true)) {
         if (alarm_status == true) {
             alarm_status = false;
+            EEPROM.put(3, alarm_status);
             oled.clear(120 ,1, 127, 8);
         } else {
-            if ((alarm_hour == 24) && (alarm_minute == 60)) {
+            if ((alarm_hour > 24) || (alarm_minute > 60)) {
                 oled.clear();
                 oled.setCursor(0, 3);
                 oled.setScale(1);
@@ -168,6 +187,7 @@ void loop() {
                 oled.update();
             } else {
                 alarm_status = true;
+                EEPROM.put(3, alarm_status);
             }
             tmr_screen.start();
         }
@@ -266,17 +286,12 @@ void main_screen() {
             break;
     }
     if (alarm_status == true) {
-        //oled.setCursorXY(1, 1);
         oled.drawBitmap(120, 1, alarm_7x8, 7, 8, BITMAP_NORMAL, BUF_ADD);  
     }
-    charging = digitalRead(chargerPin);
-    charging_done = digitalRead(chargerPin_done);
-    //Serial.print("Зарядка идет - ");
-    //Serial.println(charging);
-    //Serial.print("Зарядка закончилась - ");
-    //Serial.println(charging_done);
+    charging = !digitalRead(chargerPin);
+    charging_done = !digitalRead(chargerPin_done);
     if (charging == true) { // Идет зарядка
-        if ((tmr_charging.tick())) {
+        if ((tmr_alarm.tick())) {
             switch (charging_animation) {
                 case 0:
                     //oled.clear(99, 1, 103, 12);
@@ -328,8 +343,6 @@ void main_screen() {
         oled.print("%   ");
     }
     oled.update();
-    //t = t+1;
-    //Serial.println(t);
 }
 
 void menu() {
@@ -340,8 +353,6 @@ void menu() {
     while (true) {
         btn_up.tick();
         btn_down.tick();
-        //Serial.print("таймер - ");
-        //Serial.println(tmr_menu.tick());
         if ((tmr_menu.tick()) || (back == true)) {
             oled.clear();
             oled.update();
@@ -493,16 +504,19 @@ void menu() {
                     oled.clear();
                     bool stopwatch_status = false;
                     int hour = 0, minute = 0, second = 0, second_real, difference; 
+                    uint8_t exit = 0;
                     oled.setScale(3);
-                    tmr_stopwatch.start();
                     while (true) {
                         btn_up.tick();
                         btn_down.tick();
-                        if ((tmr_stopwatch.tick()) && (stopwatch_status == false)) {
+                        if (tmr_alarm.tick()) {
+                            exit += 1;
+                        }
+                        if ((exit > 120) && (stopwatch_status == false)) {
                             break;
                         }
                         if ((btn_up.click()) || (btn_down.click())) {
-                            tmr_stopwatch.start();
+                            exit = 0;
                             if (stopwatch_status == false) {
                                 stopwatch_status = true;
                                 clock.getTime();
@@ -519,7 +533,7 @@ void menu() {
                         if (btn_down.held()) {
                             if (stopwatch_status == true) {
                                 stopwatch_status = false;
-                                tmr_stopwatch.start();
+                                exit = 0;
                             }
                             hour = 0;
                             minute = 0;
@@ -613,12 +627,15 @@ void menu() {
                     oled.clear();
                     uint8_t choice = 1;
                     int minute = 0, second = 0, second_real, difference, minute_, second_; 
-                    tmr_stopwatch.start();
+                    uint8_t exit = 0;
                     while (true) {
                         btn_up.tick();
                         btn_down.tick();
                         oled.setScale(3);
-                        if (tmr_stopwatch.tick()) {
+                        if (tmr_alarm.tick()) {
+                            exit += 1;
+                        }
+                        if (exit > 120) {
                             break;
                         }
                         if (btn_up.held()) {
@@ -627,7 +644,7 @@ void menu() {
                             break;
                         }
                         if (btn_down.held()) {
-                            tmr_stopwatch.tick();
+                            exit = 0;
                             oled.clear();
                             choice += 1;
                         }
@@ -640,11 +657,11 @@ void menu() {
                         switch (choice) {
                             case 1: // Минуты
                                 if (btn_up.click()) {
-                                    tmr_stopwatch.tick();
+                                    exit = 0;
                                     minute += 1;
                                 }
                                 if (btn_down.click()) {
-                                    tmr_stopwatch.tick();
+                                    exit = 0;
                                     minute -= 1;
                                 }
                                 if (minute > 60) {
@@ -658,11 +675,11 @@ void menu() {
                                 break;
                             case 2: // Секунды
                                 if (btn_up.click()) {
-                                    tmr_stopwatch.tick();
+                                    exit = 0;
                                     second += 1;
                                 }
                                 if (btn_down.click()) {
-                                    tmr_stopwatch.tick();
+                                    exit = 0;
                                     second -= 1;
                                 }
                                 if (second > 59) {
@@ -689,7 +706,7 @@ void menu() {
                                         if ((btn_up.held()) || (btn_down.held()) || (timer_done == 0)) {
                                             digitalWrite(vibrationPin, LOW);
                                             second_real = 0;
-                                            tmr_stopwatch.tick();
+                                            exit = 0;
                                             oled.clear();
                                             break;
                                         }
@@ -2012,14 +2029,14 @@ void alarm_check() {
                     }
                     break;
             }
-            charging = digitalRead(chargerPin);
-            charging_done = digitalRead(chargerPin_done);
+            charging = !digitalRead(chargerPin);
+            charging_done = !digitalRead(chargerPin_done);
             //Serial.print("Зарядка идет - ");
             //Serial.println(charging);
             //Serial.print("Зарядка закончилась - ");
             //Serial.println(charging_done);
             if (charging == true) { // Идет зарядка
-                if ((tmr_charging.tick())) {
+                if ((tmr_alarm.tick())) {
                     switch (charging_animation) {
                         case 0:
                             //oled.clear(99, 1, 103, 12);
@@ -2077,10 +2094,27 @@ void alarm_check() {
 
 void battery_check() {
     if (tmr_alarm.tick()) {
-        battery = analogRead(batteryPin);
-        //510 = 2.5v, 593 = 2.9v, 614 = 3.0v, 859 = 4.2v Arduino, подтяжка 10 кОм к земле
-        battery = map(battery, 593, 859, 0, 100);
-        //battery = map(battery, 0, 1023, 0, 100);
+        battery = map(readVcc(), battery_min, battery_max, 0, 100);
     }
-    //tmr_alarm.start();
+}
+
+long readVcc() { //функция чтения внутреннего опорного напряжения, универсальная (для всех ардуин)
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+#elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+  ADMUX = _BV(MUX5) | _BV(MUX0);
+#elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
+  ADMUX = _BV(MUX3) | _BV(MUX2);
+#else
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+#endif
+  delay(2);
+  ADCSRA |= _BV(ADSC);
+  while (bit_is_set(ADCSRA, ADSC));
+  uint8_t low  = ADCL;
+  uint8_t high = ADCH;
+  long result = (high << 8) | low;
+
+  result = delta * 1023 * 1000 / result; // расчёт реального VCC
+  return result; // возвращает VCC
 }
